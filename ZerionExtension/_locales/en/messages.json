@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Zerion: Wallet for Web3 & NFTs",
+    "description": "The name of the application"
+  },
+  "appDescription": {
+    "message": "A crypto wallet for everything onchain. Browse, own, and unlock the new internet.",
+    "description": "The description of the application"
+  }
+}
