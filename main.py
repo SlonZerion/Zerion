@@ -118,7 +118,11 @@ async def run(id, private_key, proxy, semaphore):
 async def self_send(id, context, page):
     rand_self_count = random.randint(SEND_COUNT[0], SEND_COUNT[1])
     logger.info(f"{id} | START {rand_self_count} self send..")
+    count_errors = 0
     for i in range(1, rand_self_count+1):
+        if count_errors > MAX_TRY_SEND:
+            logger.error(f"{id} | Error rate of more than {MAX_TRY_SEND} | Skip wallet...")
+            break
         try:
             await page.goto('https://app.zerion.io/send')
             p = await page.wait_for_selector('#send-to', timeout=10000)
@@ -158,18 +162,24 @@ async def self_send(id, context, page):
                 await asyncio.sleep(1)
                 if len(context.pages) < 2:
                     logger.success(f"{id} | Self send {i} | {SWAP_CHAIN} {SEND_ASSET} {rand_sum_tx}")
+                    count_errors=0
                     break
                 if t > 12:
                     logger.error(f"{id} | Transaction execution error")
                     break
             await asyncio.sleep(random.randrange(NEXT_TX_MIN_WAIT_TIME, NEXT_TX_MAX_WAIT_TIME))
         except Exception as ex:
+            count_errors+=1
             logger.error(traceback.format_exc(), ex)
 
 async def swap(id, context, page):
     rand_self_count = random.randint(SWAP_COUNT[0], SWAP_COUNT[1])
     logger.info(f"{id} | START {rand_self_count} swaps..")
+    count_errors = 0
     for i in range(1, rand_self_count+1):
+        if count_errors > MAX_TRY_SEND:
+            logger.error(f"{id} | Error rate of more than {MAX_TRY_SEND} | Skip wallet...")
+            break
         try:
             await page.goto('https://app.zerion.io/swap')
             p = await page.wait_for_selector('xpath=//div/div[5]/div[1]/div/div/div[1]/div[1]/div/button[1]/div/div', timeout=5000)
@@ -217,12 +227,14 @@ async def swap(id, context, page):
                 await asyncio.sleep(1)
                 if len(context.pages) < 2:
                     logger.success(f"{id} | Swap {i} | {SWAP_CHAIN} {rand_sum_tx} {from_asset} -> {to_asset}")
+                    count_errors=0
                     break
                 if t > 12:
                     logger.error(f"{id} | Transaction execution error")
                     break
             await asyncio.sleep(random.randrange(NEXT_TX_MIN_WAIT_TIME, NEXT_TX_MAX_WAIT_TIME))
         except Exception as ex:
+            count_errors+=1
             logger.error(traceback.format_exc(), ex)
 
 
