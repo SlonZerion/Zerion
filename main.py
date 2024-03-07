@@ -52,6 +52,11 @@ async def run(id, private_key, proxy, semaphore):
                         )
                     
                     start = await context.new_page()
+                    
+                    page = await switch_to_page_by_title(context, 'Zerion')
+                    extension_url = page.url.split('/')[2].strip()
+                    await page.goto(f"chrome-extension://{extension_url}/popup.8e8f209b.html?templateType=tab&context=onboarding#/onboarding/import/private-key")
+                    
                     try:
                         empty_page1 = await switch_to_page_by_title(context, '')
                         await empty_page1.close()
@@ -59,10 +64,7 @@ async def run(id, private_key, proxy, semaphore):
                         await empty_page2.close()
                     except:
                         pass
-                    page = await switch_to_page_by_title(context, 'Zerion')
-                    extension_url = page.url.split('/')[2].strip()
-                    await page.goto(f"chrome-extension://{extension_url}/popup.8e8f209b.html?templateType=tab&context=onboarding#/onboarding/import/private-key")
-
+                    
                     await page.fill('input[name="key"]', private_key)
                     await page.press('input[name="key"]', 'Enter')
                     await asyncio.sleep(uniform(0.3, 0.7))
