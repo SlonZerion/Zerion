@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 import traceback
 
@@ -7,9 +8,8 @@ from random import uniform
 from loguru import logger
 from config import *
 
-from utils import gas_checker, get_accounts, get_format_proxy, switch_to_page_by_title
+from utils import get_accounts, get_format_proxy, switch_to_page_by_title
 
-NEW_PASSWORD = "Password_12345"
 
 async def run(id, private_key, proxy, semaphore):
     # 3 попытки зайти в кошелек
@@ -21,6 +21,11 @@ async def run(id, private_key, proxy, semaphore):
 
                 # Initialize the browser and context
                 async with async_playwright() as playwright:
+                    args=[
+                        '--disable-blink-features=AutomationControlled',
+                        f"--disable-extensions-except={os.path.abspath('ZerionExtension')}",
+                        f"--load-extension={os.path.abspath('ZerionExtension')}"
+                    ]
                     if proxy is not None and USE_PROXY is True:
                         address, port, login, password = get_format_proxy(proxy)
                         context = await playwright.chromium.launch_persistent_context(
@@ -32,30 +37,19 @@ async def run(id, private_key, proxy, semaphore):
                             "username": login,
                             "password": password
                             },
-                            args=[
-                                '--disable-blink-features=AutomationControlled',
-                                f"--disable-extensions-except={EXTENSION_PATH}",
-                                f"--load-extension={EXTENSION_PATH}"
-                            ]
+                            args=args
                         )
                     else:
                         context = await playwright.chromium.launch_persistent_context(
                             '',
                             headless=False,
                             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-
-                            args=[
-                                '--disable-blink-features=AutomationControlled',
-                                f"--disable-extensions-except={EXTENSION_PATH}",
-                                f"--load-extension={EXTENSION_PATH}"
-                            ]
+                            args=args
                         )
                     
-                    start = await context.new_page()
-                    
+                    await context.new_page()
+    
                     page = await switch_to_page_by_title(context, 'Zerion')
-                    extension_url = page.url.split('/')[2].strip()
-                    await page.goto(f"chrome-extension://{extension_url}/popup.8e8f209b.html?templateType=tab&context=onboarding#/onboarding/import/private-key")
                     
                     try:
                         empty_page1 = await switch_to_page_by_title(context, '')
@@ -65,24 +59,26 @@ async def run(id, private_key, proxy, semaphore):
                     except:
                         pass
                     
+                    await page.click('a[href="#/onboarding/import"]', timeout=5000)
+                    await page.click('a[href="#/onboarding/import/private-key"]', timeout=5000)
                     await page.fill('input[name="key"]', private_key)
                     await page.press('input[name="key"]', 'Enter')
                     await asyncio.sleep(uniform(0.3, 0.7))
 
                     # Ввод пароля
-                    await page.fill('input[name="password"]', NEW_PASSWORD) 
+                    await page.fill('input[name="password"]', "Password_12345") 
                     await page.press('input[name="password"]', 'Enter')
                     await asyncio.sleep(uniform(0.3, 0.7))
 
                     # Подтверждение пароля
-                    await page.fill('input[name="confirmPassword"]', NEW_PASSWORD)
+                    await page.fill('input[name="confirmPassword"]', "Password_12345")
                     await page.press('input[name="confirmPassword"]', 'Enter')
                     await asyncio.sleep(uniform(4, 6))
 
-                    # await page.goto('chrome-extension://ekfliooibpfihceonpdkifajgmgbnpml/popup.8e8f209b.html')
                     
                     await page.goto("https://app.zerion.io")
                     await asyncio.sleep(uniform(1, 2))
+                    
                     # Обработка возможного всплывающего окна
                     try:
                         accept_button = await page.wait_for_selector('div:text("Accept")', timeout=3000)
@@ -163,7 +159,7 @@ async def self_send(id, context, page):
             for t in range(15):
                 await asyncio.sleep(1)
                 if len(context.pages) < 2:
-                    logger.success(f"{id} | Self send {i} | {SWAP_CHAIN} {SEND_ASSET} {rand_sum_tx}")
+                    logger.success(f"{id} | Self send {i} | {SEND_CHAIN} {SEND_ASSET} {rand_sum_tx}")
                     count_errors=0
                     break
                 if t > 12:

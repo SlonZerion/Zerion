@@ -1,29 +1,11 @@
 import asyncio
 
 import pandas
-from config import MAXIMUM_GWEI, SLEEP_TIME_GAS
 
-from web3 import AsyncWeb3, AsyncHTTPProvider
+
 from loguru import logger
 from playwright.async_api._generated import Page
 
-# # Disable WebRTC
-# await context.add_init_script("""
-#     if (window.RTCPeerConnection) {
-#         const originalRTCPeerConnection = window.RTCPeerConnection;
-#         window.RTCPeerConnection = function(config, ...args) {
-#             if (config && config.iceServers) {
-#                 config.iceServers = config.iceServers.filter(server => {
-#                     if (server.urls) {
-#                         server.urls = server.urls.filter(url => url.startsWith('turn:'));
-#                     }
-#                     return !!server.urls;
-#                 });
-#             }
-#             return new originalRTCPeerConnection(config, ...args);
-#         };
-#     }
-# """)
 
 
 
@@ -72,24 +54,6 @@ def get_accounts():
                 v['proxy'] if isinstance(v['proxy'], str) else None,
             ))
         return accounts
-
-
-async def gas_checker(account_number):
-    w3 = AsyncWeb3(AsyncHTTPProvider('https://ethereum-rpc.publicnode.com'))
-    while True:
-        gas = round(AsyncWeb3.from_wei(await w3.eth.gas_price, 'gwei'), 3)
-        if gas < MAXIMUM_GWEI:
-            await asyncio.sleep(1)
-            logger.success(f"{account_number} | {gas} Gwei | Gas price is good")
-            await asyncio.sleep(1)
-            return 
-        else:
-            await asyncio.sleep(1)
-            logger.warning(
-                f"{account_number} | {gas} Gwei | Gas is too high."
-                f" Next check in {SLEEP_TIME_GAS} second")
-            await asyncio.sleep(SLEEP_TIME_GAS)
-            
 
 
 # Подключение к сайту https://app.zerion.io
